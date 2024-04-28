@@ -1,0 +1,1050 @@
+---
+title: "Análisis Hipermercado"
+author: "Jorge Ruiz Cañas"
+date: "2024-02-15"
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '6'
+  html_document:
+    toc: yes
+    toc_depth: 6
+    toc_float: yes
+    collapsed: yes
+    smooth_scroll: yes
+    theme: flatly
+    highlight: kate
+    df_print: paged
+    code_folding: hide
+---
+
+# INTRODUCCIÓN
+
+En un entorno empresarial cada vez más competitivo y en constante evolución, es crucial para las organizaciones entender y adaptarse a las tendencias del mercado. En este informe, realizaremos un análisis exhaustivo de los datos del hipermercado con el objetivo de evaluar su desempeño actual y proyectar su futuro.
+
+### Objetivo del Análisis
+
+El propósito principal de este análisis es proporcionar información estratégica que guíe las decisiones de la alta dirección del hipermercado. Abordaremos preguntas clave, tales como:
+
+-   ¿Cuál es el rendimiento actual del hipermercado en términos de ventas, categorías, segmentos y regiones?
+
+-   ¿Cuáles son las áreas de oportunidad y los desafíos que enfrenta la empresa en el mercado actual?
+
+-   ¿Qué acciones estratégicas deben tomarse para mejorar la posición competitiva y garantizar el crecimiento futuro?
+
+### Metodología
+
+Para alcanzar estos objetivos, emplearemos una variedad de técnicas de análisis de datos, que incluyen estadísticas descriptivas, análisis de tendencias y modelos predictivos. En particular, utilizaremos un modelo ARIMA (Autoregressive Integrated Moving Average) para realizar una predicción de los beneficios futuros del hipermercado. Este enfoque nos permitirá identificar patrones y proyectar el desempeño financiero del hipermercado en función de los datos históricos disponibles.
+
+### Estructura del Informe
+
+1.  Introducción
+
+    -   Descripción del contexto y objetivos del análisis.
+
+2.  Limpieza y Organización de Datos
+
+    -   Recopilación de datos
+
+    -   Procesamiento inicial: Paso a paso de cómo se procesaron los datos en bruto, incluyendo el manejo de valores faltantes, la corrección de errores y valores duplicados.
+
+    -   Normalización y transformación: Detalles sobre cómo se normalizaron los datos y cómo se aplicaron transformaciones, como la conversión de variables categóricas o la creación de nuevas variables derivadas.
+
+3.  Análisis del Desempeño Actual
+
+    -   Presentación de los resultados del análisis exploratorio de datos, incluyendo estadísticas descriptivas y visualizaciones.
+
+4.  Identificación de Oportunidades y Desafíos
+
+    -   Análisis de tendencias y patrones en los datos que puedan influir en el desempeño del hipermercado.
+
+5.  Recomendaciones Estratégicas
+
+    -   Sugerencias basadas en los hallazgos del análisis para mejorar el rendimiento y la competitividad del hipermercado.
+
+6.  Predicción de Beneficios con Modelo ARIMA
+
+    -   Resultados de la predicción de beneficios utilizando el modelo ARIMA y discusión de las implicaciones para la planificación futura.
+
+7.  Conclusiones
+
+    -   Resumen de los hallazgos clave y reflexión sobre las implicaciones para la empresa.
+
+### Audiencia
+
+Este informe está dirigido a la alta dirección del hipermercado, incluyendo a los directores ejecutivos, gerentes de operaciones, marketing y finanzas, así como a cualquier otro interesado en comprender el rendimiento y las perspectivas futuras de la empresa.
+
+### Fuente de los Datos
+
+Los datos utilizados en este análisis se han extraído de kaggle. Puedes acceder a ellos [aquí] (<https://www.kaggle.com/datasets/vivek468/superstore-dataset-final>).
+
+# LIMPIEZA Y ORGANIZACIÓN DE DATOS
+
+### Recopilación de datos
+
+```{r message=FALSE, warning=FALSE}
+library(readr)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(caret)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(forecast)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(dplyr)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(ggplot2)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(lubridate)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+```
+```{r message=FALSE, warning=FALSE}
+library(knitr)
+```
+```{r, message=FALSE}
+library(kableExtra)
+```
+```{r, message=FALSE}
+library(treemap)
+```
+```{r, message=FALSE}
+library(RColorBrewer)
+```
+```{r, message=FALSE}
+library(treemapify)
+```
+```{r, message=FALSE}
+library(grid)
+```
+```{r, message=FALSE}
+library(gridExtra)
+```
+```{r, message=FALSE}
+library(scales)
+```
+```{r, message=FALSE}
+library(tseries)
+```
+
+```{r message=FALSE, warning=FALSE, rows.print=5}
+Sample_Superstore <- read_csv("Sample - Superstore.csv")
+head(Sample_Superstore, n=20)
+```
+
+### Procesamiento inicial
+
+         
+**Valores faltantes**
+
+
+```{r}
+colSums(is.na(Sample_Superstore))
+```
+
+No hay nigún valor faltante
+
+         
+**Registros duplicados**
+
+
+```{r}
+any(duplicated(Sample_Superstore))
+```
+
+Nos arroja que no hay ningún registro duplicado
+
+    
+**Corrección de valores atípicos**
+
+
+```{r}
+summary(Sample_Superstore)
+```
+
+Podemos observar a simple vista que no hay ningún error ni valor atípico, los datos se encontraban limpios. Pasamos a la conversión y transformación de variables
+ 
+### Conversión y transformación de variables
+
+**Conversión**
+
+```{r}
+str(Sample_Superstore)
+```
+
+Observamos que hay varias variables que se encuentran en un formato erroneo como son las fechas y las variables categóricas.
+
+```{r}
+Sample_Superstore$Segment<-as.factor(Sample_Superstore$Segment)
+Sample_Superstore$Category<-as.factor(Sample_Superstore$Category)
+Sample_Superstore$`Sub-Category`<-as.factor(Sample_Superstore$`Sub-Category`)
+Sample_Superstore$`Ship Mode`<-as.factor(Sample_Superstore$`Ship Mode`)
+Sample_Superstore$Region<-as.factor(Sample_Superstore$Region)
+Sample_Superstore$`Order Date`<-as.Date(Sample_Superstore$`Order Date`, format = "%m/%d/%Y")
+Sample_Superstore$`Ship Date`<-as.Date(Sample_Superstore$`Ship Date`, format = "%m/%d/%Y")
+```
+```{r}
+str(Sample_Superstore)
+```
+
+**Transformación**
+    
+Creamos dos nuevas columnas. Una de ellas con el mes de la orden y otra con el año    
+    
+```{r}
+Sample_Superstore$`Order Month`<- month(Sample_Superstore$`Order Date`)
+Sample_Superstore$`Order Month`<-as.factor(Sample_Superstore$`Order Month`)
+
+```
+```{r}
+Sample_Superstore$`Order Year`<-year(Sample_Superstore$`Order Date`)
+```
+
+Creamos una nueva columna con los gastos totales de la orden
+
+```{r}
+Sample_Superstore$`Total Cost`<- Sample_Superstore$Sales-Sample_Superstore$Profit
+```
+Otra con el tiempo de envio
+```{r}
+Sample_Superstore$`Ship Time`<- Sample_Superstore$`Ship Date`-Sample_Superstore$`Order Date`
+```
+
+```{r}
+head(Sample_Superstore)
+```
+
+# ANALISIS DEL DESEMPEÑO ACTUAL
+
+### Analisis temporal
+
+En esta sección, nos centraremos en el análisis temporal de los datos del hipermercado. Comprender las tendencias y patrones temporales en las ventas, los ingresos y otros aspectos clave del negocio es fundamental para evaluar el desempeño a lo largo del tiempo y tomar decisiones informadas para el futuro.
+
+```{r, fig.width=12, fig.height=5, message=FALSE}
+p1<-Sample_Superstore%>%
+  group_by(`Order Year`)%>%
+  summarise(Total_Sales=sum(Sales))%>%
+  ggplot(aes(x =`Order Year`, y = Total_Sales)) +  
+  geom_bar(stat = "identity", fill = "skyblue") +
+  geom_text(aes(label = scales::comma(Total_Sales), vjust = -0.7)) +
+  labs(x = "Sales",                           
+       y = "Years",                              
+       title = "Sales by Year")+
+  theme_minimal() +
+  scale_y_continuous(labels = scales::comma_format())
+
+p2<-Sample_Superstore%>%
+  group_by(`Order Year`)%>%
+  summarise(Total_Profit=sum(Profit))%>%
+  ggplot(aes(x=`Order Year`, y=Total_Profit))+
+  geom_bar(stat = "identity", fill="skyblue")+
+  geom_text(aes(label = scales::comma(Total_Profit), vjust = -0.7)) +
+  labs(x="profit",
+       y="Years",
+       title = "Profit by Year")+
+  theme_minimal() +
+  scale_y_continuous(labels = scales::comma_format())
+gridExtra::grid.arrange(p1, p2, ncol = 2)
+```
+Se observa una clara tendencia positiva en los ingresos y beneficios totales a lo largo de los años, indicando un crecimiento sostenido en el desempeño financiero del hipermercado.Basándonos en estas observaciones iniciales, a continuación, procederemos a calcular el incremento porcentual de un año a otro para entender mejor la magnitud y consistencia del crecimiento observado en los ingresos y beneficios totales.
+
+
+```{r}
+ingreso_por_año <- Sample_Superstore %>%
+  group_by(`Order Year`) %>%
+  summarise(Total_Sales = sum(Sales))
+ingreso_por_año <- ingreso_por_año %>%
+  mutate(`Porcentual Increment` = (Total_Sales - lag(Total_Sales)) / lag(Total_Sales) * 100)
+ingreso_por_año <- ingreso_por_año %>%
+  mutate(Total_Sales = format(Total_Sales, big.mark = ".", decimal.mark = ","))
+kable(ingreso_por_año, 
+      caption = "Percentage Increase in Sales",
+      format = "markdown",
+      digits = 2, 
+      format.args = list(`Porcentual Increment` = "%#.2f"))%>%
+  kable_styling(full_width = FALSE, bootstrap_options = "striped", 
+                font_size = 14, latex_options = "hold_position") %>%
+  column_spec(1, bold = TRUE)
+```
+```{r}
+beneficio_por_año <- Sample_Superstore %>%
+  group_by(`Order Year`) %>%
+  summarise(Total_Profit = sum(Profit))
+beneficio_por_año <- beneficio_por_año %>%
+  mutate(`Porcentual Increment` = (Total_Profit - lag(Total_Profit)) / lag(Total_Profit) * 100)
+beneficio_por_año <- beneficio_por_año %>%
+  mutate(Total_Profit = format(Total_Profit, big.mark = ".", decimal.mark = ","))
+kable(beneficio_por_año, 
+      caption = "Percentage Increase in Profit",
+      format = "markdown",
+      digits = 2, 
+      format.args = list(`Porcentual Increment` = "%#.2f"))%>%
+  kable_styling(full_width = FALSE, bootstrap_options = "striped", 
+                font_size = 14, latex_options = "hold_position") %>%
+  column_spec(1, bold = TRUE)
+```
+El incremento considerable en los ingresos y beneficios durante los últimos tres años sugiere un crecimiento significativo en el desempeño financiero del hipermercado. Este aumento puede ser el resultado de varias causas, como el incremento en las ventas de productos, la optimización de los márgenes de ganancia o la reducción de los costos operativos. Para comprender mejor las razones detrás de estos incrementos, a continuación, nos enfocaremos en analizar la venta de productos y los costos asociados, lo que nos permitirá identificar áreas específicas de oportunidad y áreas de mejora para la empresa.
+
+```{r, fig.width=12, fig.height=5, message=FALSE}
+p3<-Sample_Superstore%>%
+  group_by(`Order Year`)%>%
+  summarise(Mean_cost=mean(`Total Cost`))%>%
+  ggplot(aes(x=`Order Year`, y=Mean_cost))+
+  geom_bar(stat = "identity", fill="skyblue")+
+  geom_text(aes(label = scales::comma(Mean_cost), vjust = -0.7)) +
+  labs(x="Cost",
+       y="Years",
+       title = "Mean cost by Year")+
+  theme_minimal() +
+  theme(plot.title = element_text(size = 16, face = "bold", hjust = 0.5))+
+  scale_y_continuous(labels = scales::comma_format())
+  
+
+```
+```{r, fig.width=12, fig.height=5, message=FALSE}
+p4<-Sample_Superstore%>%
+  group_by(`Order Year`)%>%
+  summarise(Total_cantidad=sum(Quantity))%>%
+  ggplot(aes(x=`Order Year`, y=Total_cantidad))+
+  geom_bar(stat = "identity", fill="skyblue")+
+  geom_text(aes(label = scales::comma(Total_cantidad), vjust = -0.7)) +
+  labs(x="Quantity",
+       y="Years",
+       title = "Total quantity by Year")+
+  theme_minimal() +
+  scale_y_continuous(labels = scales::comma_format())
+gridExtra::grid.arrange(p3, p4, ncol = 2)
+
+```
+Al analizar los datos, observamos que el aumento en el beneficio durante los tres primeros años está asociado con diferentes factores. En el primer año, el beneficio se vio impulsado principalmente por la reducción del coste total medio.En el segundo año, el incremento en el beneficio coincidió con un aumento significativo en la cantidad vendida, indicando un crecimiento en la demanda de productos. Sin embargo, el tercer año presenta una particularidad, ya que a pesar del incremento en la cantidad vendida y la disminución del coste medio el aumento en el beneficio fue menos pronunciado. Esto puede ser el resultado de estrategias de precios agresivas. En los próximos análisis, examinaremos más de cerca si este fenómeno se debe realmente a una estrategia de descuentos demasiado agresiva por parte del hipermercado, lo que podría haber afectado los márgenes de beneficio. Esto nos permitirá evaluar si se requiere un ajuste en las estrategias de precios para optimizar la rentabilidad del hipermercado a largo plazo.
+  A continuación vamos a examinar los ingresos y beneficios mensuales del hipermercado durante varios años para identificar patrones estacionales y tendencias a lo largo del tiempo. Al comprender mejor cómo fluctúan los ingresos y beneficios en diferentes meses, podremos tomar decisiones más informadas sobre la gestión de inventario y estaremos mejor equipados para anticipar las demandas del mercado.
+  
+
+```{r}
+meses_del_año <- c("January", "February", "March", "April", "May", "June",
+                   "July", "August", "September", "October", "November", "December")
+```
+
+```{r, fig.width=12, fig.height=5, message=FALSE}
+p5<-Sample_Superstore %>%
+  group_by(`Order Month`) %>%
+  summarise(Total_Sales = sum(Sales)) %>%
+  ggplot(aes(x = `Order Month`, y = Total_Sales)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(x = "Month",
+       y = "Sales",
+       title = "Total Sales every Month") +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::comma_format())+
+  scale_x_discrete(labels = meses_del_año)+
+  theme(axis.text.x = element_text(angle = 50, hjust = 0.8)) 
+p6<-Sample_Superstore %>%
+  group_by(`Order Month`) %>%
+  summarise(Total_Profit = sum(Profit)) %>%
+  ggplot(aes(x = `Order Month`, y = Total_Profit)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(x = "Month",
+       y = "Profit",
+       title = "Total Profit every Month", face="bold", size= 18) +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::comma_format())+
+  scale_x_discrete(labels = meses_del_año)+
+  theme(axis.text.x = element_text(angle = 50, hjust = 0.8))
+gridExtra::grid.arrange(p5, p6, ncol = 2)
+```
+Los datos revelan una variabilidad mensual en los ingresos y beneficios, con meses como marzo, septiembre, noviembre y diciembre destacando por cifras más altas. Aunque los patrones de ingresos y beneficios son similares, los beneficios en diciembre son notablemente más altos, sugiriendo márgenes de beneficio más elevados durante ese período.
+
+
+## Análisis de producto
+
+En este caso nos sumergimos en un análisis detallado para comprender qué productos, categorías y subcategorías están desempeñando un papel crucial en los ingresos y beneficios del hipermercado. Al examinar estas variables clave, buscamos identificar los impulsores principales de la rentabilidad del negocio.
+  En primer lugar, analizaremos qué productos son los que más se están vendiendo y cuales aportan un mayor beneficio.
+  
+```{r, message=FALSE}
+top_10 <- Sample_Superstore %>%
+  group_by(`Product Name`, Category) %>%
+  summarize(Quantity = sum(Quantity)) %>%
+  ungroup() %>%
+  arrange(desc(Quantity)) %>%
+  head(n = 10)
+```
+```{r}
+top_10 %>%
+  kable("html", caption = "<b style='color:black'>Most Popular Products</b>") %>%
+  kable_styling(full_width = FALSE, bootstrap_options = "striped", 
+                font_size = 14, latex_options = "hold_position") %>%
+  column_spec(1, bold = TRUE)
+```
+
+```{r, message=FALSE}
+top_10_1 <- Sample_Superstore %>%
+  group_by(`Product Name`, Category) %>%
+  summarize(Profit = sum(Profit)) %>%
+  ungroup() %>%
+  arrange(desc(Profit)) %>%
+  head(n = 10)
+```
+```{r}
+top_10_1 <- top_10_1 %>%
+  mutate(Profit = format(Profit, big.mark = ".", decimal.mark = ","))
+```
+
+```{r}
+top_10_1 %>%
+  kable("html", caption = "<b style='color:black'>Products with the greatest profit</b>") %>%
+  kable_styling(full_width = FALSE, bootstrap_options = "striped", 
+                font_size = 14, latex_options = "hold_position") %>%
+  column_spec(1, bold = TRUE)
+```
+Durante el análisis de los datos, se ha observado una discrepancia notable entre los productos más vendidos y los más rentables. Mientras que la mayoría de los productos de material de oficina y bajo precio son los más vendidos, son los productos tecnológicos los que aportan los mayores beneficios.
+  Para comprender mejor cómo cada categoría impacta en la rentabilidad y la demanda del negocio vamos a examinar el beneficio y la cantidad vendida por categoría en el hipermercado. 
+  
+```{r, fig.width=12, fig.height=5, message=FALSE}
+p7<-Sample_Superstore %>%
+  group_by(Category) %>%
+  summarise(Total_Profit = sum(Profit)) %>%
+  mutate(Porcentaje = Total_Profit / sum(Total_Profit) * 100) %>%
+  ggplot(aes(x = "", y = Porcentaje, fill = Category)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar(theta = "y") +
+  labs(title = "Profit by Category",
+       fill = "Category",
+       x = NULL,
+       y = NULL) +
+  geom_text(aes(label = paste0(round(Porcentaje, 1), "%")), 
+            position = position_stack(vjust = 0.5),
+            size = 4, color = "white", fontface = "bold") +  
+  scale_fill_manual(values = c("dodgerblue4", "indianred1", "darkorange")) +  
+  theme_minimal() +  
+  theme(axis.text = element_blank(),  
+        axis.title = element_blank(), 
+        legend.position = "bottom",  
+        plot.title = element_text(size = 18, face = "bold", hjust = 0.5), 
+        legend.title = element_text(size = 14),  
+        legend.text = element_text(size = 12)) 
+p8<-Sample_Superstore %>%
+  group_by(Category) %>%
+  summarise(Total_Quantity = sum(Quantity)) %>%
+  mutate(Porcentaje = Total_Quantity / sum(Total_Quantity) * 100) %>%
+  ggplot(aes(x = "", y = Porcentaje, fill = Category)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar(theta = "y") +
+  labs(title = "Quantity by Category",
+       fill = "Category",
+       x = NULL,
+       y = NULL) +
+  geom_text(aes(label = paste0(round(Porcentaje, 1), "%")), 
+            position = position_stack(vjust = 0.5),
+            size = 4, color = "white", fontface = "bold") +  
+  scale_fill_manual(values = c("dodgerblue4", "indianred1", "darkorange")) +  
+  theme_minimal() +  
+  theme(axis.text = element_blank(),  
+        axis.title = element_blank(), 
+        legend.position = "bottom",  
+        plot.title = element_text(size = 18, face = "bold", hjust = 0.5), 
+        legend.title = element_text(size = 14),  
+        legend.text = element_text(size = 12)) 
+gridExtra::grid.arrange(p7, p8, ncol = 2)
+```
+Se puede observar que la categoría de Muebles aporta una proporción relativamente baja tanto a la cantidad de productos vendidos como al beneficio de la empresa, siendo esta última discrepancia más notable. Se podría afirmar que la sostenibilidad financiera proviene principalmente de las categorías de Tecnología y Suministros de Oficina. La primera tiene una contribución significativamente mayor al beneficio total, mientras que la segunda lidera en términos de cantidad de productos vendidos.
+  Tras observar el rendimiento general de las categorías de productos, es fundamental adentrarnos en una revisión más detallada de las subcategorías que componen cada una de ellas. Este análisis nos permitirá identificar las áreas específicas dentro de cada categoría que están impulsando su desempeño
+
+
+```{r}
+knitr::include_graphics("C:/Users/ruizj/Desktop/R/Tienda/Profit by Furniture.png")
+```
+```{r}
+knitr::include_graphics("C:/Users/ruizj/Desktop/R/Tienda/Profit by Office Supplies.png")
+```
+```{r}
+knitr::include_graphics("C:/Users/ruizj/Desktop/R/Tienda/Profit by Technology .png")
+```
+
+En la categoría de muebles, observamos que dos subcategorías están generando pérdidas, siendo la de mesas especialmente significativa. Es crucial investigar las causas de estas pérdidas para tomar medidas correctivas.
+
+Por otro lado, la categoría de tecnología muestra un panorama positivo, con los teléfonos, fotocopiadoras y accesorios contribuyendo significativamente a los beneficios totales de la empresa. Estas subcategorías se presentan como pilares clave en términos de rentabilidad.
+
+Asimismo, la categoría de suministros de oficina también desempeña un papel importante en los beneficios, con una distribución equitativa entre las diferentes subcategorías.
+
+## Análisis Clientes
+
+En este próximo análisis, dirigiremos nuestra atención hacia el cliente, explorando datos clave que nos proporcionarán una comprensión más profunda de su comportamiento y preferencias. Al examinar patrones de compra, segmentos de clientes y otras métricas relevantes, buscamos identificar oportunidades para mejorar la experiencia del cliente, impulsar la fidelización y optimizar los resultados comerciales.
+
+```{r, fig.width=12, fig.height=5, message=FALSE}
+p9<-Sample_Superstore %>%
+  group_by(Segment) %>%
+  summarise(Total_Profit = sum(Profit)) %>%
+  mutate(Porcentaje = Total_Profit / sum(Total_Profit) * 100) %>%
+  ggplot(aes(x = "", y = Porcentaje, fill = Segment)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar(theta = "y") +
+  labs(title = "Profit by Segment",
+       fill = "Segment",
+       x = NULL,
+       y = NULL) +
+  geom_text(aes(label = paste0(round(Porcentaje, 1), "%")), 
+            position = position_stack(vjust = 0.5),
+            size = 4, color = "white", fontface = "bold") +  
+  scale_fill_manual(values = c("dodgerblue4", "indianred1", "darkorange")) +  
+  theme_minimal() +  
+  theme(axis.text = element_blank(),  
+        axis.title = element_blank(), 
+        legend.position = "bottom",  
+        plot.title = element_text(size = 18, face = "bold", hjust = 0.5), 
+        legend.title = element_text(size = 14),  
+        legend.text = element_text(size = 12)) 
+p10<-Sample_Superstore %>%
+  group_by(Segment) %>%
+  summarise(Total_Quantity = sum(Quantity)) %>%
+  mutate(Porcentaje = Total_Quantity / sum(Total_Quantity) * 100) %>%
+  ggplot(aes(x = "", y = Porcentaje, fill = Segment)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar(theta = "y") +
+  labs(title = "Quantity by Segment",
+       fill = "Segment",
+       x = NULL,
+       y = NULL) +
+  geom_text(aes(label = paste0(round(Porcentaje, 1), "%")), 
+            position = position_stack(vjust = 0.5),
+            size = 4, color = "white", fontface = "bold") +  
+  scale_fill_manual(values = c("dodgerblue4", "indianred1", "darkorange")) +  
+  theme_minimal() +  
+  theme(axis.text = element_blank(),  
+        axis.title = element_blank(), 
+        legend.position = "bottom",  
+        plot.title = element_text(size = 18, face = "bold", hjust = 0.5), 
+        legend.title = element_text(size = 14),  
+        legend.text = element_text(size = 12)) 
+gridExtra::grid.arrange(p9, p10, ncol = 2)
+```
+"Tras analizar el beneficio total y la cantidad vendida entre los diferentes segmentos de clientes, hemos observado una distribución notablemente similar en ambos resultados. Específicamente, hemos notado que el segmento 'Customer' contribuye aproximadamente con la mitad del beneficio total y la cantidad vendida de la empresa. La otra mitad se divide entre los segmentos 'Corporate' y 'Home Office', siendo 'Corporate' ligeramente superior en ambos casos. Esta distribución equilibrada entre los segmentos demuestra la importancia significativa del segmento 'Customer' en las operaciones generales de la empresa.
+```{r, fig.width=12, fig.height=5, message=FALSE}
+p11<-Sample_Superstore %>%
+  group_by(Segment, Category) %>%
+  summarise(Total_Profit = sum(Profit)) %>%
+  ggplot(aes(x = Segment, y = Total_Profit, fill = factor(Category))) +
+  geom_bar(stat = "identity") +
+  labs(x = "Segment",
+       y = "Profit",
+       title = "Profit by Segment") +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::comma_format()) +
+scale_fill_manual(values = c("dodgerblue4", "indianred1", "darkorange"))
+
+p12<-Sample_Superstore %>%
+  group_by(Segment, Category) %>%
+  summarise(Total_Quantity = sum(Quantity)) %>%
+  ggplot(aes(x = Segment, y = Total_Quantity, fill = factor(Category))) +
+  geom_bar(stat = "identity") +
+  labs(x = "Segment",
+       y = "Quantity",
+       title = "Quantity by Segment") +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::comma_format()) +
+scale_fill_manual(values = c("dodgerblue4", "indianred1", "darkorange"))
+gridExtra::grid.arrange(p11, p12, ncol = 2)
+
+```
+Después de analizar tanto el beneficio total como la cantidad vendida de productos por cada tipo de cliente en relación con las distintas categorías, hemos observado que la distribución tanto del beneficio como de la cantidad vendida sigue un patrón consistente para todos los segmentos de clientes. En otras palabras, cada tipo de cliente muestra una distribución similar del beneficio total y la cantidad vendida entre las categorías de productos. Esto sugiere que no hay preferencia discernible de ningún segmento de cliente hacia una categoría específica tanto en términos de beneficio como de cantidad vendida. Esta uniformidad en la distribución demuestra una equidad en el comportamiento de compra de los diferentes tipos de clientes.
+```{r, message=FALSE}
+top10 <- Sample_Superstore %>%
+  group_by(Segment, `Customer Name`) %>%
+  summarize(Quantity = sum(Quantity)) %>%
+  ungroup() %>%
+  arrange(desc(Quantity)) %>%
+  head(n = 10)
+```
+```{r}
+top10 %>%
+  kable("html", caption = "<b style='color:black'>Most Popular Customers</b>") %>%
+  kable_styling(full_width = FALSE, bootstrap_options = "striped", 
+                font_size = 14, latex_options = "hold_position") %>%
+  column_spec(1, bold = TRUE)
+```
+
+
+```{r, message=FALSE}
+top10_1 <- Sample_Superstore %>%
+  group_by(Segment, `Customer Name`) %>%
+  summarize(Profit = sum(Profit)) %>%
+  ungroup() %>%
+  arrange(desc(Profit)) %>%
+  mutate(`Profit Percentage` = round((Profit / sum(Profit)) * 100, 2))%>%
+  head(n = 10)
+```
+```{r}
+top10_1 <- top10_1 %>%
+  mutate(Profit = format(Profit, big.mark = ".", decimal.mark = ","))
+```
+
+
+```{r}
+top10_1 %>%
+  kable("html", caption = "<b style='color:black'>Customers with the greatest profit</b>") %>%
+  kable_styling(full_width = FALSE, bootstrap_options = "striped", 
+                font_size = 14, latex_options = "hold_position") %>%
+  column_spec(1, bold = TRUE)
+```
+
+## Análisis método de envío
+
+En este próximo análisis, nos centraremos en evaluar si estamos cumpliendo con los plazos de entrega y entender las preferencias de envío de nuestros clientes. Exploraremos la puntualidad de los diferentes métodos de envío ofrecidos por nuestra empresa y analizaremos si cumplen con las expectativas de nuestros clientes en cuanto a tiempos de entrega. Además, investigaremos las preferencias de envío de nuestros clientes, buscando comprender qué métodos son más populares y por qué. Al obtener una visión más clara de la satisfacción del cliente con nuestros servicios de envío, podremos tomar medidas para mejorar la eficiencia y la calidad de nuestras operaciones logísticas.
+
+```{r,fig.width=12, fig.height=5, message=FALSE}
+p13<-Sample_Superstore %>%
+  count(`Ship Mode`) %>%
+  mutate(Porcentaje = n / sum(n) * 100) %>%
+  ggplot(aes(x = "", y = Porcentaje, fill = `Ship Mode`)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar(theta = "y") +
+  labs(title = "Most Popular Ship Mode",
+       fill = "Ship Mode",
+       x = NULL,
+       y = NULL) +
+  geom_text(aes(label = paste0(round(Porcentaje, 1), "%")), 
+            position = position_stack(vjust = 0.5),
+            size = 4, color = "white", fontface = "bold") +  
+  scale_fill_manual(values = c("hotpink", "cyan2", "mediumorchid1", "darkolivegreen1")) +  
+  theme_minimal() +  
+  theme(axis.text = element_blank(),  
+        axis.title = element_blank(), 
+        legend.position = c(1, 0),  
+        legend.direction = "horizontal", 
+        plot.title = element_text(size = 18, face = "bold", hjust = 0.5), 
+        legend.title = element_text(size = 14),  
+        legend.text = element_text(size = 12))
+p14<-Sample_Superstore %>%
+  group_by(`Ship Mode`) %>%
+  summarise(Total_Profit = sum(Profit)) %>%
+  mutate(Porcentaje = Total_Profit / sum(Total_Profit) * 100) %>%
+  ggplot(aes(x = "", y = Porcentaje, fill = `Ship Mode`)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar(theta = "y") +
+  labs(title = "Profit by Ship Mode",
+       x = NULL,
+       y = NULL) +
+  geom_text(aes(label = paste0(round(Porcentaje, 1), "%")), 
+            position = position_stack(vjust = 0.5),
+            size = 4, color = "white", fontface = "bold") +  
+  scale_fill_manual(values = c("hotpink", "cyan2", "mediumorchid1", "darkolivegreen1")) +  
+  theme_minimal() +  
+  theme(axis.text = element_blank(),  
+        axis.title = element_blank(), 
+        legend.position = "none", 
+        plot.title = element_text(size = 18, face = "bold", hjust = 0.5), 
+        legend.title = element_text(size = 14),  
+        legend.text = element_text(size = 12))
+gridExtra::grid.arrange(p13, p14, ncol = 2)
+```
+
+Destacamos que el envío estándar es el preferido por nuestros clientes, solicitado en aproximadamente el 60% de las ocasiones, mientras que el envío en el mismo día tiene la menor demanda, con solo un 5.4%. El resto de los métodos de envío, como el envío de primera y segunda clase, se distribuyen de manera equitativa. Al analizar los beneficios asociados con cada método de envío, observamos que siguen una distribución similar. Esto sugiere que nuestros clientes no muestran preferencia por opciones de envío más 'premium', posiblemente debido al costo adicional o a que los tiempos de entrega no difieren significativamente entre los diferentes métodos. Aunque no disponemos de información sobre las tarifas de cada método de envío, podemos evaluar el tiempo medio que lleva enviar cada pedido según el método de envío seleccionado para saber si esto es una de las causas.
+
+```{r, message=FALSE}
+Sample_Superstore %>%
+  group_by(`Ship Mode`) %>%
+  summarise(Time = mean(`Ship Time`)) %>%
+  ggplot(aes(x = `Ship Mode`, y = Time, fill = `Ship Mode`)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = round(Time, 2)), vjust = -0.5, size = 3, color = "black") +  
+  labs(x = "Ship Mode",
+       y = "Time",
+       title = "Ship Time by Ship Mode") +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::comma_format()) +
+  scale_fill_manual(values = c("hotpink", "cyan2", "mediumorchid1", "darkolivegreen1"))  
+```
+
+El método de envío estándar presenta una duración media de 5 días, lo cual es sorprendentemente rápido para ser considerado el método de envío más básico de nuestra empresa. Esta eficiencia puede justificar la preferencia de los consumidores por este método, especialmente si no conlleva costos adicionales. Además, observamos que cumplimos con los plazos de entrega del método de envío en el mismo día, ya que la duración media es prácticamente de 0 días. Respecto a los métodos de envío de primera clase y segunda clase, la diferencia en la duración media es de aproximadamente 1 día, un hecho que puede considerarse poco significativo.
+  Además, en el próximo paso de nuestro análisis, examinaremos los métodos de envío según el tipo de consumidor y la categoría de productos. Esta exploración nos permitirá identificar si existen preferencias distintivas en la elección del método de envío por parte de diferentes tipos de clientes y en relación con diferentes categorías de productos.
+```{r,fig.width=12, fig.height=5, message=FALSE}
+p15<-Sample_Superstore%>%
+  group_by(`Ship Mode`, Segment)%>%
+  summarise(Quantity = n())%>%
+  ggplot(aes(x=`Ship Mode`,y=Quantity, fill= Segment))+
+  geom_bar(stat = "identity") +
+  labs(x = "Ship Mode",
+       y = "Quantiy",
+       title = "Ship Mode by Segment") +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::comma_format()) +
+scale_fill_manual(values = c("dodgerblue4", "indianred1", "darkorange"))
+p16<-Sample_Superstore%>%
+  group_by(`Ship Mode`, Category)%>%
+  summarise(Quantity = n())%>%
+  ggplot(aes(x=`Ship Mode`,y=Quantity, fill= Category))+
+  geom_bar(stat = "identity") +
+  labs(x = "Ship Mode",
+       y = "Quantity",
+       title = "Ship Mode by Category") +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::comma_format()) +
+scale_fill_manual(values = c("dodgerblue4", "indianred1", "darkorange"))
+gridExtra::grid.arrange(p15, p16, ncol = 2)
+```
+
+Después de un análisis exhaustivo de los métodos de envío según el tipo de consumidor, hemos concluido que no existe una preferencia clara por un método de envío específico entre los diferentes segmentos de clientes. En todas las categorías de clientes, la distribución de preferencias de los métodos de envío es sorprendentemente uniforme, reflejando de manera individual una tendencia similar a la del conjunto de clientes. Este fenómeno sugiere que no hay diferencias significativas en las preferencias de envío entre los diferentes tipos de clientes, lo que indica una elección generalizada del método de envío más popular. Asimismo, observamos que este patrón se repite en el análisis de las categorías de productos
+
+## Análisis geofráfico
+
+En este próximo análisis, exploraremos la expansión geográfica de nuestra empresa a nivel de tiendas dentro del país. Nos enfocaremos en identificar las regiones donde tenemos una mayor presencia y que contribuyen significativamente a nuestros beneficios. Al analizar esta información geográfica, obtendremos una comprensión más clara de nuestra huella empresarial y podremos identificar oportunidades para optimizar nuestras operaciones y maximizar nuestros resultados.
+```{r}
+Shop<-Sample_Superstore %>%
+  group_by(`Order Year`) %>%
+  summarise(Stores = length(unique(`Postal Code`)))%>%
+  mutate(`Porcentual Increment` = (Stores - lag(Stores)) / lag(Stores) * 100)
+kable(Shop, 
+      caption = "Percentage Increase in Stores",
+      format = "markdown",
+      digits = 2, 
+      format.args = list(`Porcentual Increment` = "%#.2f"))%>%
+  kable_styling(full_width = FALSE, bootstrap_options = "striped", 
+                font_size = 14, latex_options = "hold_position") %>%
+  column_spec(1, bold = TRUE)
+```
+Se ha observado un constante crecimiento en la expansión de nuestras tiendas a lo largo de los años, con un aumento particularmente notable en los últimos dos años. El año 2016 destacó con un incremento del 16% respecto al año anterior. Si bien esta expansión podría estar asociada al aumento de los beneficios experimentado por el hipermercado en estos años, es interesante notar que la variación porcentual de los beneficios supera significativamente a la del número de tiendas en cada año analizado. Esto sugiere que el aumento de tiendas no es la única razón detrás del incremento de los beneficios, aunque sigue siendo un factor relevante. Para reforzar este argumento, procederemos a calcular el beneficio por tienda a lo largo de los años.
+```{r}
+Shop <- Sample_Superstore %>%
+  group_by(`Order Year`) %>%
+  summarise(Stores = length(unique(`Postal Code`)),
+            Profit = sum(Profit)) 
+Shop <- Shop %>%
+  mutate(Profit = Profit / Stores) %>%
+  mutate(`Porcentual Increment` = (Profit - lag(Profit)) / lag(Profit) * 100)%>%
+  mutate(Profit = format(round(Profit, 2), big.mark = ".", decimal.mark = ","))
+
+kable(Shop, 
+      caption = "Percentage Increase in Stores",
+      format = "markdown",
+      digits = 2) %>%
+  kable_styling(full_width = FALSE, bootstrap_options = "striped", 
+                font_size = 14, latex_options = "hold_position") %>%
+  column_spec(1, bold = TRUE)
+```
+Aunque hemos observado que el aumento porcentual del beneficio por tienda está disminuyendo con el tiempo, sigue habiendo un crecimiento general. Este hallazgo refuerza la conclusión previa de que el aumento de las tiendas no es la única causa del incremento en los beneficios.
+  A continuación, exploraremos la distribución geográfica de los beneficios en nuestra empresa a través de los diferentes códigos postales. Al mapear los beneficios en un contexto geoespacial, podemos obtener una visión más completa de cómo se distribuyen los ingresos en nuestra área de operaciones. Este enfoque nos permitirá identificar áreas con altos y bajos beneficios, así como comprender mejor los factores geográficos que pueden estar influyendo en el desempeño financiero de la empresa. Utilizando esta información, podemos tomar decisiones más informadas sobre cómo optimizar nuestras operaciones y maximizar nuestros beneficios en áreas específicas.
+
+```{r}
+htmltools::img(src = "C:/Users/ruizj/Desktop/R/Tienda/Profit by Postal Code.png", width = "100%", height = "auto")
+```
+Destacamos que una parte significativa de nuestras tiendas muestra pérdidas, lo cual refuerza nuestra conclusión previa. Este hallazgo es motivo de preocupación, y próximamente, analizaremos las posibles causas de este fenómeno. Sin embargo, es alentador observar que la mayoría de las tiendas generan beneficios. En la siguiente sección, examinaremos cuáles son las tiendas que contribuyen más y menos a nuestros beneficios.
+
+```{r, message=FALSE}
+top_region <- Sample_Superstore %>%
+  group_by(`Postal Code`, City) %>%
+  summarize(Profit = sum(Profit)) %>%
+  ungroup() %>%
+  arrange(desc(Profit)) %>%
+  mutate(`Profit Percentage` = round((Profit / sum(Profit)) * 100, 2))%>%
+  head(n = 10)%>%
+  mutate(Profit = format(Profit, big.mark = ".", decimal.mark = ","))
+```
+```{r}
+top_region %>%
+  kable("html", caption = "<b style='color:black'>Most Profit Stores</b>") %>%
+  kable_styling(full_width = FALSE, bootstrap_options = "striped", 
+                font_size = 14, latex_options = "hold_position") %>%
+  column_spec(1, bold = TRUE)
+```
+Los 10 códigos postales que se muestran son de vital importancia para la salud financiera de la empresa, ya que entre ellos aglutinan aproximadamente el 40% de los beneficios totales. Es notable mencionar que la ciudad de Nueva York City tiene 4 códigos postales dentro del top 5 de la lista, lo que resalta su significativa contribución al desempeño financiero de la empresa.
+```{r, message=FALSE}
+top_region_1 <- Sample_Superstore %>%
+  group_by(`Postal Code`, City) %>%
+  summarize(Profit = sum(Profit)) %>%
+  ungroup() %>%
+  arrange(Profit) %>%
+  mutate(`Profit Percentage` = round((Profit / sum(Profit)) * 100, 2))%>%
+  head(n = 10)%>%
+  mutate(Profit = format(Profit, big.mark = ".", decimal.mark = ","))
+```
+```{r}
+top_region_1 %>%
+  kable("html", caption = "<b style='color:black'>Worst Profit Stores</b>") %>%
+  kable_styling(full_width = FALSE, bootstrap_options = "striped", 
+                font_size = 14, latex_options = "hold_position") %>%
+  column_spec(1, bold = TRUE)
+```
+Estos 10 códigos postales requieren nuestra atención inmediata, ya que representan los mayores desafíos en términos de pérdidas generadas. Es crucial actuar rápidamente para revertir esta situación. Es interesante notar que la ciudad de Filadelfia tiene 3 códigos postales dentro de esta lista, lo que subraya la importancia de abordar los problemas en esta área específica.
+  A continuación haremos un análisis de los beneficios a por Estado para saber en cuales estamos teniendo un mejor rendimiento.
+  
+```{r, fig.height=8, message=FALSE}
+Sample_Superstore %>%
+  group_by(State) %>%
+  summarise(Profit = sum(Profit)) %>%
+  ggplot(aes(x = Profit, y = State)) +
+  geom_bar(aes(fill = Profit > 0), stat = "identity") +
+  scale_fill_manual(values = c("darkorange1", "deepskyblue4"), guide = "none") +
+  labs(x = "Profit",
+       y = "State",
+       title = "Profit by State") +
+  theme_minimal()
+```
+
+Cabe destacar que los Estados de Nueva York y California acumulan aproximadamente el 52% de los beneficios totales, hecho que muestra que son dos grandes pilares de nuestro hipermercado. Por contrapartida, el Estado de Texas nos genera unas pérdidas de $25,000, hecho que se debe apaliar. Además, para identificar los estados con mayor crecimiento a lo largo de los años y donde podríamos obtener un mayor rendimiento al abrir nuevas tiendas, realizaremos un análisis de los 10 estados que han experimentado un mayor incremento porcentual del beneficio.
+
+```{r, message=FALSE}
+variacion<-Sample_Superstore %>%
+  group_by(State, `Order Year`) %>%
+  summarise(Profit = sum(Profit)) %>%
+  ungroup() %>%
+  pivot_wider(names_from = `Order Year`, values_from = Profit) %>%
+  mutate(
+    `2014-2015` = round((`2015` - `2014`) / `2014` * 100, 2),
+    `2015-2016` = round((`2016` - `2015`) / `2015` * 100, 2),
+    `2016-2017` = round((`2017` - `2016`) / `2016` * 100, 2)
+  ) %>%
+  select(State, `2014-2015`, `2015-2016`, `2016-2017`) %>%
+  arrange(desc(`2016-2017`)) %>%
+  head(n = 15)
+```
+```{r}
+variacion %>%
+  kable("html", caption = "<b style='color:black'>Percentage Increase in Profit by State</b>") %>%
+  kable_styling(full_width = FALSE, bootstrap_options = "striped", 
+                font_size = 14, latex_options = "hold_position") %>%
+  column_spec(1, bold = TRUE)
+```
+Es importante destacar que los estados de Illinois, Colorado, Texas y Tennessee estaban entre los que generaban pérdidas. Sin embargo, en los últimos dos años (a excepción de Tennessee, que solo experimentó un crecimiento significativo el último año), hemos observado un crecimiento positivo en estos estados. Este aumento puede indicar que las medidas implementadas están teniendo éxito y están revirtiendo la situación.
+
+  Por otro lado, es importante señalar que el resto de estados no han experimentado un crecimiento continuo a lo largo de los años, lo cual es preocupante ya que no se trata de un crecimiento sostenible. Una posible causa de esta situación podría ser el uso de precios muy agresivos y márgenes reducidos.
+
+  Por lo tanto, en el próximo análisis exploraremos cómo los descuentos aplicados pueden influir en el beneficio y si es necesario ajustar nuestra estrategia para lograr un crecimiento más equilibrado y sostenible en todos los estados.
+```{r, message=FALSE}
+variacion_1<-Sample_Superstore %>%
+  group_by(State, `Order Year`) %>%
+  summarise(Profit = sum(Profit)) %>%
+  ungroup() %>%
+  pivot_wider(names_from = `Order Year`, values_from = Profit) %>%
+  mutate(
+    `2014-2015` = round((`2015` - `2014`) / `2014` * 100, 2),
+    `2015-2016` = round((`2016` - `2015`) / `2015` * 100, 2),
+    `2016-2017` = round((`2017` - `2016`) / `2016` * 100, 2)
+  ) %>%
+  select(State, `2014-2015`, `2015-2016`, `2016-2017`) %>%
+  arrange(`2016-2017`) %>%
+  head(n = 15)
+```
+```{r}
+variacion_1 %>%
+  kable("html", caption = "<b style='color:black'>Percentage Increase in Profit by State</b>") %>%
+  kable_styling(full_width = FALSE, bootstrap_options = "striped", 
+                font_size = 14, latex_options = "hold_position") %>%
+  column_spec(1, bold = TRUE)
+```
+En este caso, es importante señalar que en los estados con mayores decrecimientos, como Florida y North Carolina, debemos prestar una atención especial. Estos estados no solo han experimentado el mayor decrecimiento en el último año, sino que también han tenido dos años consecutivos de decrecimiento. Además, como se observó en el gráfico anterior, estos estados ya estaban en la lista de estados que generaban pérdidas. Estos indicadores sugieren que la situación no se está revirtiendo, sino que podría estar empeorando.
+
+  Además, tenemos los estados de District of Columbia, Vermont e Idaho, que, aunque estaban entre los estados con beneficios, estos eran bastante reducidos. Como se puede ver en los datos, han experimentado un decrecimiento en los beneficios en los últimos dos años. Si esta tendencia no se revierte, es probable que estos estados terminen generando pérdidas.
+
+  En cuanto al resto de estados, como se mencionó anteriormente, alternan entre años de crecimiento y decrecimiento, lo que indica una situación menos estable y más volátil.
+
+
+## Análisis de descuentos
+
+En este próximo análisis, nos sumergiremos en el impacto de los descuentos en los beneficios de nuestra empresa. Entender cómo influyen los descuentos en nuestras ganancias es crucial, ya que podría ser uno de los factores clave que contribuyen a las pérdidas en diversas áreas. Vamos a explorar cómo la estrategia de descuentos está afectando la rentabilidad general de la empresa y qué medidas correctivas podríamos considerar para optimizar nuestros resultados financieros.
+
+```{r,fig.width=12, fig.height=5, message=FALSE}
+p17<-Sample_Superstore %>%
+  group_by(Discount)%>%
+  summarise(Profit = sum(Profit))%>%
+  ggplot(aes(x=factor(Discount), y= Profit))+
+  geom_bar(aes(fill = Profit > 0), stat = "identity") +
+  scale_fill_manual(values = c("darkorange1", "deepskyblue4"), guide = "none") +
+  labs(x = "Discount",
+       y = "Profit",
+       title = "Profit by Discount") +
+  scale_y_continuous(labels = scales::comma_format()) +
+  theme_minimal()
+
+p18<-Sample_Superstore %>%
+  group_by(Discount)%>%
+  summarise(Quantity = sum(Quantity))%>%
+  ggplot(aes(x=factor(Discount), y= Quantity))+
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(x = "Discount",
+       y = "Quantity",
+       title = "Quantity by Discount") +
+  scale_y_continuous(labels = scales::comma_format()) +
+  theme_minimal()
+gridExtra::grid.arrange(p17, p18, ncol = 2)
+```
+Como habíamos anticipado, hemos identificado que la principal causa de las pérdidas que hemos observado anteriormente está relacionada con la aplicación de descuentos. Nuestro análisis revela que cuando aplicamos descuentos superiores al 20%, incurrimos en pérdidas. Además, la mayoría de las ventas se realizan sin descuentos o con descuentos menores al 20%.
+
+  Este hallazgo sugiere que los descuentos se aplican cuando los productos no se venden, en un intento por agotar el stock existente. Por lo tanto, para mejorar nuestros beneficios en el futuro, será crucial mejorar nuestra previsión de inventario. A continuación, llevaremos a cabo un análisis detallado para examinar cómo se comportan los descuentos en relación con las diferentes categorías de productos y entender mejor su impacto en nuestra rentabilidad.
+
+
+```{r, message=FALSE}
+Sample_Superstore %>%
+  group_by(Category, Discount_group = case_when(
+    Discount == 0 ~ "Sin Descuento",
+    Discount > 0 & Discount <= 0.20 ~ "Descuento >20%",
+    Discount >0.20 ~ "Descuento <20%"
+  )) %>%
+  summarise(beneficio_total = sum(Profit))%>%
+  ggplot(aes(x = Discount_group, y = beneficio_total, fill = Category)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Beneficio Total por Categoría y Grupo de Descuento",
+       x = "Discount",
+       y = "Beneficio Total",
+       fill = "Grupo de Descuento") +
+  scale_fill_manual(values = c("dodgerblue4", "indianred1", "darkorange")) +  
+  theme_minimal()
+```
+Observamos que la categoría más afectada por los descuentos es la de muebles, lo cual concuerda con nuestra observación anterior de que esta categoría contribuye mínimamente a los beneficios de la empresa, representando apenas un 6% aproximadamente. Esto podría ser una de las causas subyacentes de su vulnerabilidad a los descuentos.
+
+Sin embargo, es importante destacar que todas las categorías experimentan pérdidas significativas cuando los descuentos superan el 20%. Este hallazgo sugiere que la política de descuentos puede estar generando un impacto adverso en todas las áreas de nuestro negocio.
+
+  Ahora vamos a comprobar si lo que estaba sucediendo en los Estados era debido a esta política de descuentos. 
+  
+```{r, fig.height=8, message=FALSE}
+Sample_Superstore %>%
+  group_by(State,Discount_group = case_when(
+    Discount == 0 ~ "Sin Descuento",
+    Discount > 0 & Discount <= 0.20 ~ "Descuento >20%",
+    Discount >0.20 ~ "Descuento <20%"
+  )) %>%
+  summarise(Profit = sum(Profit)) %>%
+  ggplot(aes(x = Profit, y = State)) +
+  geom_bar(aes(fill = Discount_group), stat = "identity") +
+  labs(x = "Profit",
+       y = "State",
+       title = "Profit by State") +
+  theme_minimal()
+```  
+Observamos que los estados que presentaban pérdidas son aquellos donde las ventas sin descuento o con descuentos menores al 20% son escasas, y la gran mayoría de las transacciones se realizan con descuentos. Esta situación plantea la interrogante sobre la viabilidad de mantener operaciones en esos estados.
+
+  En caso de no poder vender productos sin descuento, podría ser considerado dejar de operar en esos estados como una medida para mitigar pérdidas. Alternativamente, reducir los costos operativos podría ser otra opción para obtener beneficios.
+
+  Además, si el enfoque actual implica iniciar con precios descontados desde el principio, lo cual resulta en pérdidas, sería necesario replantear esa estrategia de marketing para asegurar una rentabilidad sostenible.
+  
+# IDENTIFICACIÓN DE OPORTUNIDADES Y DESAFIOS
+
+## Oportunidades
+
+1. **Optimización de la estrategia de precios**: El análisis de descuentos reveló que aplicar descuentos superiores al 20% conduce a pérdidas. Esto sugiere una oportunidad para ajustar la estrategia de precios y evitar descuentos excesivos que puedan impactar negativamente en la rentabilidad.
+
+2. **Enfoque en categorías rentables**: Las categorías de tecnología y suministros de oficina son las más rentables para el hipermercado. Hay una oportunidad para enfocar los esfuerzos de marketing y ventas en estas categorías para maximizar los beneficios.
+
+3. **Expansión geográfica enfocada**: Aunque la expansión de tiendas ha sido notable, identificamos áreas específicas con altos y bajos beneficios. Esto sugiere la oportunidad de optimizar la expansión geográfica, centrándose en áreas con alto potencial de beneficios y reconsiderando la viabilidad de operar en áreas con pérdidas consistentes.
+
+4. **Optimización del tiempo de entrega**: el método de envío estándar tiene una duración media de entrega de 5 días, lo cual es sorprendentemente rápido para ser considerado el método de envío más básico. Esta eficiencia en el tiempo de entrega podría ser aprovechada como una ventaja competitiva frente a otros competidores en el mercado minorista. 
+
+## Desafios
+
+1. **Gestión de inventario**: El análisis de descuentos sugiere que una parte significativa de los descuentos se aplica para agotar el stock existente. Esto indica un desafío en la gestión de inventario y la necesidad de mejorar la previsión de la demanda para evitar excesos de inventario que puedan llevar a pérdidas.
+
+2. **Sostenibilidad financiera de ciertas categorías y estados**: Las categorías de muebles y algunos estados específicos están generando pérdidas consistentes. Esto representa un desafío en términos de mantener la sostenibilidad financiera en estas áreas. Se requiere una revisión detallada de estas operaciones para identificar soluciones viables.
+
+3. **Competencia y diferenciación**: Aunque hemos identificado áreas rentables y oportunidades para mejorar la rentabilidad, también enfrentamos la competencia en el mercado minorista. Es importante diferenciarnos de la competencia mediante la oferta de productos únicos, servicios excepcionales o una experiencia de compra personalizada para atraer y retener clientes.
+
+4. **Tiempo de entrega**: mantener y mejorar esta eficiencia para satisfacer las expectativas cambiantes de los clientes que buscan entregas más rápidas.
+
+# RECOMENDACIONES ESTRATÉGICAS
+
+1. **Revisión de la política de descuentos**: Dado que los descuentos están contribuyendo a pérdidas significativas, es crucial revisar y ajustar la política de descuentos. Se deben establecer límites claros en cuanto al porcentaje de descuento para evitar pérdidas innecesarias y asegurar que los descuentos se apliquen estratégicamente para impulsar las ventas sin comprometer los márgenes de beneficio.
+
+2. **Optimización del inventario**: Mejorar la previsión de inventario es fundamental para reducir la necesidad de aplicar descuentos para agotar el stock. Implementar sistemas de gestión de inventario más precisos y utilizar datos históricos de ventas para prever la demanda futura puede ayudar a minimizar el exceso de inventario y reducir la dependencia de descuentos para liquidar productos.
+
+3. **Enfoque en las categorías rentables**: Dado que las categorías de tecnología y suministros de oficina son las más rentables, se deben asignar recursos adicionales para impulsar estas categorías. Esto puede incluir estrategias de marketing específicas, ampliación de la gama de productos y colaboraciones con proveedores para garantizar una oferta competitiva y atractiva para los clientes.
+
+4. **Evaluación de la expansión territorial**: A pesar del crecimiento en el número de tiendas, es necesario evaluar cuidadosamente la viabilidad de mantener operaciones en áreas donde se generan pérdidas persistentes. Se deben considerar medidas como la consolidación de tiendas, la revisión de la ubicación y el tamaño de las tiendas, y la implementación de estrategias específicas para mejorar el desempeño en áreas con resultados deficientes.
+
+5. **Personalización de la experiencia del cliente**: Utilizar datos de clientes para personalizar la experiencia de compra puede aumentar la lealtad del cliente y las tasas de conversión. Esto puede incluir recomendaciones de productos personalizadas, ofertas exclusivas y programas de fidelización diseñados para satisfacer las necesidades y preferencias individuales de los clientes.
+
+6. **Análisis continuo y ajuste de estrategia**: Es crucial realizar un seguimiento continuo del desempeño y ajustar las estrategias según sea necesario. Esto implica monitorear de cerca los indicadores clave de rendimiento, realizar análisis periódicos para identificar tendencias y oportunidades emergentes, y adaptar las estrategias en función de los cambios en el mercado y las preferencias de los clientes.
+
+
+
+# PREDICCIÓN DE BENEFICIOS CON EL MODELO ARIMA
+
+El modelo ARIMA (AutoRegressive Integrated Moving Average) es una técnica de análisis de series temporales ampliamente utilizada para predecir valores futuros en función de datos históricos. Este enfoque combina componentes autoregresivos (AR), integrados (I) y de media móvil (MA) para modelar la estructura temporal de la serie y hacer pronósticos precisos.
+  Vamos a aplicar dos modelos ARIMA para predecir los beneficios del siguiente año. El primer modelo utilizará todos los datos disponibles, mientras que el segundo se basará únicamente en los productos vendidos con descuentos menores al 20%. Esta división nos permitirá evaluar cómo una estrategia de precios y una mejor gestión del inventario pueden influir en las proyecciones de beneficios a futuro.
+
+
+1. Creamos la tabla con descuentos menores a 20%
+
+```{r, message=FALSE}
+sin_descuento<-Sample_Superstore%>%
+  filter(Discount<="0.20")
+```
+
+2. Seleccionamos sólo la fecha y la variable a pronosticar
+
+```{r, message=FALSE}
+sin_descuento<-sin_descuento%>%
+  select(`Order Date`, Profit)
+
+completo<-Sample_Superstore%>%
+  select(`Order Date`, Profit)
+```
+
+3. Agrupamos beneficio por año y mes
+
+```{r, message=FALSE}
+sin_descuento<-sin_descuento%>%
+  mutate(month=format(`Order Date`, "%m"),year=format(`Order Date`,"%Y"))%>%
+  group_by(month, year)%>%
+  summarise(beneficio=sum(Profit))
+
+completo<-completo%>%
+  mutate(month=format(`Order Date`, "%m"),year=format(`Order Date`,"%Y"))%>%
+  group_by(month, year)%>%
+  summarise(beneficio=sum(Profit))
+```
+
+4. Creamos las series temporales
+
+```{r, message=FALSE}
+sin<-ts(sin_descuento[,3], start = c(2014,1), end = c(2017,12), frequency = 12)
+
+con<-ts(completo[,3], start = c(2014,1), end = c(2017,12), frequency = 12)
+```
+
+
+5. Las gráficamos
+
+```{r, message=FALSE}
+plot(sin)+
+  title("Serie Temporal sin descuento")
+plot(con)+
+  title("Serie Temporal con descuento")
+```
+
+6. Realizamos el modelo 
+
+```{r}
+modelo_sin_descuento <- auto.arima(sin, stepwise = FALSE, approximation = FALSE)
+modelo_sin_descuento
+pronostico_sin<-forecast::forecast(modelo_sin_descuento, h=12)
+pronostico_sin
+plot(pronostico_sin)
+```
+```{r}
+modelo_completo<-auto.arima(con, stepwise = FALSE, approximation = FALSE)
+modelo_completo
+pronostico_com<-forecast::forecast(modelo_completo, h=12)
+pronostico_com
+plot(pronostico_com)
+```
+
+Cómo se puede ver en los pronosticos los beneficios aplicando como máximo descuento del 20% son mucho mayores que si realizamos una política de descuentos como hasta ahora. En ciertos meses la predicción con la nueva política de descuentos duplicaba el beneficio a la actual. Este hecho manifiesta que sería una buena práctica realizar el cambio para poder obtener unos mayores beneficios y que a su vez estos sean más sostenibles a lo largo del tiempo. 
+
+# CONCLUSIONES
+
+En resumen, tras realizar un análisis exhaustivo de diversos aspectos clave del desempeño del hipermercado, hemos identificado varias áreas de oportunidad y desafíos que merecen una atención estratégica. Observamos un crecimiento sostenido en los ingresos y beneficios totales a lo largo de los años, impulsado en gran medida por un aumento en las ventas de productos tecnológicos y suministros de oficina. Sin embargo, también hemos identificado preocupaciones significativas, como la alta dependencia de descuentos para la venta de ciertas categorías de productos, lo que resulta en pérdidas. Esto resalta la importancia de una mejor gestión del inventario y una estrategia de precios más eficaz para optimizar la rentabilidad.
+
+Además, el análisis geográfico reveló áreas específicas donde las tiendas están generando pérdidas, lo que subraya la necesidad de tomar medidas correctivas para revertir esta tendencia. Por otro lado, identificamos estados con un crecimiento positivo, lo que sugiere que las medidas implementadas están teniendo éxito, aunque se requiere una vigilancia continua para garantizar un crecimiento sostenible.
+
+
+
+
+
+
